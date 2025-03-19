@@ -10,14 +10,6 @@ async function findStream(anime: Anime): Promise<object> {
         }
     }
   
-    if (!anime.malId || !anime.anilistId) {
-        return {
-            error: 'MalId or AnilistId must be provided',
-            status: 400, 
-            headers: { 'Content-Type': 'application/json' }
-        }
-    }
-  
     if (!anime.episodeNumber) {
         return {
             error: 'episodeNumber must be provided',
@@ -26,17 +18,9 @@ async function findStream(anime: Anime): Promise<object> {
         }
     }
   
-    if (typeof anime.malId !== 'number' || typeof anime.anilistId !== 'number' || typeof anime.episodeNumber !== 'number') {
+    if (typeof anime.episodeNumber !== 'number') {
         return {
             error: 'animeMalId, animeAnilistId and episodeNumber must be numbers',
-            status: 400, 
-            headers: { 'Content-Type': 'application/json' }
-        }
-    }
-
-    if (typeof anime.englishTitle !== 'string' || typeof anime.title !== 'string' || typeof anime.japaneseTitle !== 'string') {
-        return {
-            error: 'englishTitle, title and japaneseTitle must be strings',
             status: 400, 
             headers: { 'Content-Type': 'application/json' }
         }
