@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+	  "target": "ES2022",
+	  "module": "ESNext",
+	  "moduleResolution": "node",
+	  "strict": true,
+	  "outDir": "./dist",
+	  "rootDir": "./src",
+	  "esModuleInterop": true,
+	  "skipLibCheck": true,
+	  "baseUrl": ".", 
+	  "paths": {
+		"#interfaces/*": ["src/interfaces/*"],
+		"#utils/*": ["src/utils/*"],
+		"#sources/*": ["src/sources/*"]
+	  }
+	},
+	"include": ["src/**/*"],
+	"exclude": ["node_modules"]
+  }
+  
