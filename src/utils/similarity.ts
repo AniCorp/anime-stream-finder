@@ -1,4 +1,4 @@
-import { Anime, AnimePaheItem } from '#interfaces/anime';
+import { Anime, AnimeItem } from '#interfaces/anime';
 import { pipeline, FeatureExtractionPipeline } from '@xenova/transformers';
 
 type EmbedderPipeline = (input: string) => Promise<{ data: number[] }>;
@@ -39,7 +39,7 @@ function cosineSimilarity(vecA: number[], vecB: number[]) {
   return dotProduct / (magnitudeA * magnitudeB);
 }
 
-export async function attachSimilarityScores(anime: Anime, animeWebObject: AnimePaheItem[]) {
+export async function attachSimilarityScores(anime: Anime, animeWebObject: AnimeItem[]) {
     const embedder = await getEmbeddingPipeline();
 
     const titlesToCompare = ([anime.title, anime.englishTitle, anime.japaneseTitle] as (string | undefined)[])

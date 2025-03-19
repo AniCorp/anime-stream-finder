@@ -1,4 +1,4 @@
-import { Anime, AnimePaheItem } from '#interfaces/anime';
+import { Anime, AnimeItem } from '#interfaces/anime';
 import { StreamSource, StreamData } from '#interfaces/stream';
 import { crawler } from '#utils/crawler';
 import { attachSimilarityScores } from '#utils/similarity';
@@ -9,7 +9,7 @@ function generateCookie(): string {
   return `__ddg2_=${randomString}`;
 }
 
-async function flattenAndDeduplicate(responses: any[]): any[] {
+async function flattenAndDeduplicate(responses: any[]): Promise<any[]> {
   const combinedData: any[] = [];
 
   for (const response of responses) {
@@ -27,7 +27,7 @@ async function flattenAndDeduplicate(responses: any[]): any[] {
   return uniqueAnimes;
 }
 
-async function filterByAverageScore(animeList: AnimePaheItem[]) {
+async function filterByAverageScore(animeList: AnimeItem[]) {
   const scores = animeList
     .map(anime => anime.similarity?.highestScore)
     .filter(score => typeof score === 'number');

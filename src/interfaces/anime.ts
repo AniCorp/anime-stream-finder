@@ -16,23 +16,23 @@ type AnimeTitles = {
     japaneseTitle?: string;
 };
 
-type AnimePaheItemBase = {
-    id: number,
+type AnimeItemBase = {
+    id?: number,
     title: string;
-    type: string;
-    episodes: number;
-    status: string;
-    season: string;
-    year: number;
-    score: number;
-    poster: string;
-    session: string;
+    type?: string;
+    episodes?: number;
+    status?: string;
+    season?: string;
+    year?: number;
+    score?: number;
+    poster?: string;
+    session?: string;
     similarity?: {
         highestScore: number,
         detailedScores: {}
     };
 }
 
-export type AnimePaheItem = AnimePaheItemBase
+export type AnimeItem = AnimeItemBase
 export type Anime = AnimeBase & RequireAtLeastOne<AnimeTitles, "englishTitle" | "title" | "japaneseTitle">;
 
