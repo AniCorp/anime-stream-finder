@@ -1,5 +1,6 @@
 # This file tells Git which files shouldn't be added to source control
 
+package-lock.json
 .idea
 dist
 node_modules
