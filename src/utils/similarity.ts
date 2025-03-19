@@ -1,4 +1,4 @@
-import { Anime, AnimeWebObject } from '#interfaces/anime';
+import { Anime, AnimePaheItem } from '#interfaces/anime';
 import { pipeline, FeatureExtractionPipeline } from '@xenova/transformers';
 
 type EmbedderPipeline = (input: string) => Promise<{ data: number[] }>;
@@ -39,7 +39,7 @@ function cosineSimilarity(vecA: number[], vecB: number[]) {
   return dotProduct / (magnitudeA * magnitudeB);
 }
 
-export async function attachSimilarityScores(anime: Anime, animeWebObject: AnimeWebObject[]) {
+export async function attachSimilarityScores(anime: Anime, animeWebObject: AnimePaheItem[]) {
     const embedder = await getEmbeddingPipeline();
 
     const titlesToCompare = ([anime.title, anime.englishTitle, anime.japaneseTitle] as (string | undefined)[])
@@ -56,11 +56,10 @@ export async function attachSimilarityScores(anime: Anime, animeWebObject: Anime
             return cosineSimilarity(animeTitleEmbeddings[idx].data, itemEmbedding.data);
         });
 
-        const cumulativeSimilarity =
-            similarities.reduce((acc, val) => acc + val, 0) / similarities.length;
+        const highestSimilarity = Math.max(...similarities);
 
         item.similarity = {
-            cumulativeScore: cumulativeSimilarity,
+            highestScore: highestSimilarity,
             detailedScores: titlesToCompare.reduce((obj: Record<string, number>, title, idx) => {
                 obj[title] = similarities[idx];
                 return obj;

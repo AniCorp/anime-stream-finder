@@ -1,15 +1,48 @@
-import { Anime } from '#interfaces/anime';
+import { Anime, AnimePaheItem } from '#interfaces/anime';
 import { StreamSource, StreamData } from '#interfaces/stream';
 import { crawler } from '#utils/crawler';
 import { attachSimilarityScores } from '#utils/similarity';
 import crypto from 'crypto';
 
-export function generateCookie(): string {
+function generateCookie(): string {
   const randomString = crypto.randomBytes(8).toString('hex');
   return `__ddg2_=${randomString}`;
 }
 
-const search = async (anime: Anime): Promise<any[]> => {
+async function flattenAndDeduplicate(responses: any[]): any[] {
+  const combinedData: any[] = [];
+
+  for (const response of responses) {
+    if (response && Array.isArray(response.data)) {
+      combinedData.push(...response.data);
+    } else if (Array.isArray(response)) {
+      combinedData.push(...response);
+    }
+  }
+
+  const uniqueAnimes = combinedData.filter((item, index, self) =>
+    index === self.findIndex((a) => a.session === item.session)
+  );
+
+  return uniqueAnimes;
+}
+
+async function filterByAverageScore(animeList: AnimePaheItem[]) {
+  const scores = animeList
+    .map(anime => anime.similarity?.highestScore)
+    .filter(score => typeof score === 'number');
+
+  const averageScore = scores.reduce((acc, curr) => acc + curr, 0) / scores.length;
+
+  const filteredAnimeList = animeList.filter(anime => {
+    const score = anime.similarity?.highestScore;
+    return typeof score === 'number' && score >= averageScore;
+  });
+
+  return filteredAnimeList;
+}
+
+async function search(anime: Anime): Promise<any[]> {
   const urls: string[] = [];
   if (anime.title) {
     urls.push(`https://animepahe.ru/api?m=search&q=${encodeURIComponent(anime.title)}`);
@@ -36,32 +69,17 @@ const search = async (anime: Anime): Promise<any[]> => {
     }
   });
 
-  return results;
+  const uniqueData = await flattenAndDeduplicate(results);
+  const dataWithSimilarityScore = await attachSimilarityScores(anime, uniqueData);
+  const dataFilteredByAverageScore = await filterByAverageScore(dataWithSimilarityScore);
+
+  return dataFilteredByAverageScore;
 };
-
-export function flattenAndDeduplicate(responses: any[]): any[] {
-  const combinedData: any[] = [];
-
-  for (const response of responses) {
-    if (response && Array.isArray(response.data)) {
-      combinedData.push(...response.data);
-    } else if (Array.isArray(response)) {
-      combinedData.push(...response);
-    }
-  }
-
-  const uniqueAnimes = combinedData.filter((item, index, self) =>
-    index === self.findIndex((a) => a.session === item.session)
-  );
-
-  return uniqueAnimes;
-}
 
 export const animePahe: StreamSource = {
   async searchAnime(anime: Anime): Promise<StreamData | null> {
-    const responses = await search(anime);
-    const uniqueData = flattenAndDeduplicate(responses);
-    const dataWithSimilarityScore = await attachSimilarityScores(anime, uniqueData);
-    return dataWithSimilarityScore;
+    const animes = await search(anime);
+    
+    return animes;
   },
 };
