@@ -6,6 +6,7 @@ export interface StreamData {
             [resolution: string]: string;
         };
     };
+    match: number
 }
   
 export interface StreamSource {
