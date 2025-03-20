@@ -61,7 +61,6 @@ async function search(anime: Anime): Promise<any[]> {
     try {
       const responseBody = body;
       if (responseBody) {
-        // Convert to string before parsing, if necessary.
         const json = JSON.parse(responseBody.toString());
         results.push(json);
       }
@@ -89,29 +88,26 @@ async function fetchMatchingAnimeDetails(
     animeItem => `https://animepahe.ru/api?m=detail&id=${animeItem.session}`
   );
 
-  const responses: any[] = [];
+  const results: any[] = [];
+
   await api_crawler(urls, cookie, async ({ body, request }) => {
     try {
       if (body) {
         const detailData = JSON.parse(body.toString());
-        responses.push(detailData);
+        results.push(detailData);
       }
     } catch (error) {
       console.error(`Error parsing JSON from ${request.url}:`, error);
     }
   });
 
-  for (const detailData of responses) {
-    const malMatch =
-      anime.malId !== undefined ? detailData.mal === anime.malId : true;
-    const anilistMatch =
-      anime.anilistId !== undefined ? detailData.anilist === anime.anilistId : true;
-
-    if (malMatch && anilistMatch) {
-      return detailData;
-    }
-  }
-  return {};
+  const matchingDetail = results.find(detailData => {
+    const malMatch = anime.malId !== undefined ? detailData.mal === anime.malId : true;
+    const anilistMatch = anime.anilistId !== undefined ? detailData.anilist === anime.anilistId : true;
+    return malMatch && anilistMatch;
+  });
+  
+  return matchingDetail || {};
 }
 
 export const animePahe: StreamSource = {
