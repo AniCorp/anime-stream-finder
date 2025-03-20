@@ -43,6 +43,21 @@ async function findStream(anime: Anime): Promise<object> {
     }
 }
 
+const anime: Anime = {
+    title: 'Shangri-La Frontier',
+    englishTitle: 'Shangri-La Frontier',
+    japaneseTitle: 'シャングリラ',
+    season: 'Fall',
+    year: 2024,
+    episodeNumber: 3,
+    malId: undefined,
+    anilistId: 176508
+}
+
+const response = await findStream(anime)
+
+console.log(JSON.stringify(response.data, null, 4));
+
 export {
     findStream
 }
