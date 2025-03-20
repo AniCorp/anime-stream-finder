@@ -74,12 +74,52 @@ async function search(anime: Anime): Promise<any[]> {
   const dataFilteredByAverageScore = await filterByAverageScore(dataWithSimilarityScore);
 
   return dataFilteredByAverageScore;
-};
+}
+
+async function getCorrectAnimeDetails(
+  anime: Anime,
+  animeList: AnimeItem[]
+): Promise<any> {
+  if (!anime.malId && !anime.anilistId)
+    throw new Error("No malId or anilistId provided");
+
+  const cookie = generateCookie();
+  for (const animeItem of animeList) {
+    const sessionId = animeItem.session;
+    const url = `https://animepahe.ru/api?m=detail&id=${sessionId}`;
+    let detailData: any = null;
+
+    await crawler([url], cookie, async ({ page, request }) => {
+      try {
+        const responseBody = await page.evaluate(() => document.body.textContent);
+        if (responseBody) {
+          detailData = JSON.parse(responseBody);
+        }
+      } catch (error) {
+        console.error(`Error parsing JSON from ${request.url}:`, error);
+      }
+    });
+
+    if (detailData) {
+      const malMatch =
+        anime.malId !== undefined ? detailData.mal === anime.malId : true;
+      const anilistMatch =
+        anime.anilistId !== undefined ? detailData.anilist === anime.anilistId : true;
+
+      if (malMatch && anilistMatch) {
+        return detailData;
+      }
+    }
+  }
+
+  throw new Error("Anime not found");
+}
 
 export const animePahe: StreamSource = {
   async searchAnime(anime: Anime): Promise<StreamData | null> {
-    const animes = await search(anime);
-    
-    return animes;
+    const animeList = await search(anime);
+    const details = await getCorrectAnimeDetails(anime, animeList);
+
+    return details;
   },
 };
