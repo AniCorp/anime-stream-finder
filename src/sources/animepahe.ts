@@ -1,6 +1,6 @@
 import { Anime, AnimeItem } from '#interfaces/anime';
 import { StreamSource, StreamData } from '#interfaces/stream';
-import { api_crawler } from '#utils/crawler';
+import { api_crawler, browser_crawler } from '#utils/crawler';
 import { attachSimilarityScores } from '#utils/similarity';
 import crypto from 'crypto';
 
@@ -76,7 +76,7 @@ async function search(anime: Anime): Promise<any[]> {
   return dataFilteredByAverageScore;
 }
 
-async function getEpisodeSession(anime: { episodeNumber: number }, detail: { session: string }): Promise<string | null> {
+async function getEpisodeSession(anime: { episodeNumber: number }, detail: { session: string }): Promise<any> {
   let episodeSession: string | null = null;
   let page = 1;
   const baseUrl = `https://animepahe.ru/api?m=release&id=${detail.session}&sort=episode_asc&page=`;
@@ -109,7 +109,7 @@ async function getEpisodeSession(anime: { episodeNumber: number }, detail: { ses
     const episodeItem = pageData.data.find((ep: any) => ep.episode === targetEpisode);
     if (episodeItem) {
       episodeSession = episodeItem.session;
-      break;
+      return episodeItem;
     }
 
     if (pageData.current_page >= pageData.last_page) {
@@ -119,7 +119,7 @@ async function getEpisodeSession(anime: { episodeNumber: number }, detail: { ses
     page++;
   }
 
-  return episodeSession;
+  return {};
 }
 
 async function fetchMatchingAnimeDetails(
@@ -156,11 +156,93 @@ async function fetchMatchingAnimeDetails(
   return matchingDetail || {};
 }
 
+async function extractDownloadLinkDetails(
+  animeSession: string,
+  episodeSession: string
+): Promise<
+  {
+    url: string;
+    source: string;
+    resolution: string;
+    size: string;
+    language: string;
+  }[]
+> {
+  const playUrl = `https://animepahe.ru/play/${animeSession}/${episodeSession}`;
+  const cookie = generateCookie();
+  let downloadLinks: {
+    url: string;
+    source: string;
+    resolution: string;
+    size: string;
+    language: string;
+  }[] = [];
+
+  await browser_crawler(playUrl, cookie, async (context) => {
+    const { page } = context;
+    await page.waitForSelector('#pickDownload');
+    downloadLinks = await page.evaluate(() => {
+      const results: {
+        url: string;
+        source: string;
+        resolution: string;
+        size: string;
+        language: string;
+      }[] = [];
+      const container = document.getElementById('pickDownload');
+      if (container) {
+        const links = container.querySelectorAll('a.dropdown-item');
+        links.forEach((link) => {
+          const href = link.getAttribute('href') || '';
+          let source = '';
+          let resolution = '';
+          let size = '';
+          let language = 'jpn';
+
+          const langSpan = link.querySelector('span');
+          if (langSpan && langSpan.textContent) {
+            language = langSpan.textContent.trim();
+          }
+
+          let textContent = link.textContent || '';
+          if (langSpan && langSpan.textContent) {
+            textContent = textContent.replace(langSpan.textContent, '').trim();
+          }
+
+          const match = textContent.match(/^(.+?)\s·\s(\d+p)\s\((.+?)\)$/);
+          if (match) {
+            source = match[1].trim();
+            resolution = match[2].trim();
+            size = match[3].trim();
+          }
+
+          results.push({
+            url: href,
+            source,
+            resolution,
+            size,
+            language,
+          });
+        });
+      }
+      return results;
+    });
+  });
+
+  return downloadLinks;
+}
+
 export const animePahe: StreamSource = {
   async searchAnime(anime: Anime): Promise<StreamData | null> {
     const animeList = await search(anime);
     const details = await fetchMatchingAnimeDetails(anime, animeList);
-    const episodeSession = await getEpisodeSession(anime, details);
-    return episodeSession;
+    const episode = await getEpisodeSession(anime, details);
+
+    const animeSession = details.session;
+    const episodeSession = episode.session;
+
+    const playDetails = extractDownloadLinkDetails(animeSession, episodeSession)
+    
+    return playDetails;
   },
 };
