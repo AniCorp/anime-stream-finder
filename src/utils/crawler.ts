@@ -1,10 +1,17 @@
-import { RequestQueue, PlaywrightCrawler, type PlaywrightCrawlingContext, CheerioCrawler, CheerioCrawlingContext } from 'crawlee';
+import {
+  RequestQueue,
+  PlaywrightCrawler,
+  type PlaywrightCrawlingContext,
+  CheerioCrawler,
+  CheerioCrawlingContext,
+} from 'crawlee';
 import { BrowserName, DeviceCategory, OperatingSystemsName } from '@crawlee/browser-pool';
 
 export async function browser_crawler(
   urls: string | string[],
   cookie: string,
-  customRequestHandler: (context: PlaywrightCrawlingContext) => Promise<void>
+  customRequestHandler: (context: PlaywrightCrawlingContext) => Promise<void>,
+  maxRequestRetries: number = 3
 ): Promise<void> {
   const requestQueue = await RequestQueue.open();
 
@@ -18,12 +25,13 @@ export async function browser_crawler(
 
   const crawler = new PlaywrightCrawler({
     requestQueue,
+    maxRequestRetries,
     browserPoolOptions: {
       fingerprintOptions: {
         fingerprintGeneratorOptions: {
           browsers: [
             {
-              name: BrowserName.chrome
+              name: BrowserName.chrome,
             },
           ],
           devices: [DeviceCategory.mobile],
@@ -34,6 +42,9 @@ export async function browser_crawler(
     async requestHandler(context) {
       await customRequestHandler(context);
     },
+    async failedRequestHandler({ request, error }) {
+      console.error(`Request ${request.url} failed after ${maxRequestRetries} retries. Error:`, error);
+    },
   });
 
   await crawler.run();
@@ -42,7 +53,8 @@ export async function browser_crawler(
 export async function api_crawler(
   urls: string | string[],
   cookie: string,
-  customRequestHandler: (context: CheerioCrawlingContext) => Promise<void>
+  customRequestHandler: (context: CheerioCrawlingContext) => Promise<void>,
+  maxRequestRetries: number = 3
 ): Promise<void> {
   const requestQueue = await RequestQueue.open();
 
@@ -56,8 +68,12 @@ export async function api_crawler(
 
   const crawler = new CheerioCrawler({
     requestQueue,
+    maxRequestRetries,
     async requestHandler(context) {
       await customRequestHandler(context);
+    },
+    async failedRequestHandler({ request, error }) {
+      console.error(`Request ${request.url} failed after ${maxRequestRetries} retries. Error:`, error);
     },
   });
 

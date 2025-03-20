@@ -82,7 +82,7 @@ async function fetchMatchingAnimeDetails(
   animeList: AnimeItem[]
 ): Promise<any> {
   if (!anime.malId && !anime.anilistId)
-    throw new Error("No malId or anilistId provided");
+    return {};
 
   const cookie = generateCookie();
   const urls: string[] = animeList.map(
@@ -111,7 +111,7 @@ async function fetchMatchingAnimeDetails(
       return detailData;
     }
   }
-  throw new Error("Anime not found");
+  return {};
 }
 
 export const animePahe: StreamSource = {
