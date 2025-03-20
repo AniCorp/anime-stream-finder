@@ -3,10 +3,13 @@ import { Anime } from "./anime";
 export interface StreamData {
     links: {
         [language: string]: {
-            [resolution: string]: string;
+            [resolution: string]: {
+                source: string,
+                url: string,
+                size?: string | number,
+            };
         };
     };
-    match: number
 }
   
 export interface StreamSource {

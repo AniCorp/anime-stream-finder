@@ -50,7 +50,7 @@ export async function browser_crawler(
   await crawler.run();
 }
 
-export async function api_crawler(
+export async function crawler(
   urls: string | string[],
   cookie: string,
   customRequestHandler: (context: CheerioCrawlingContext) => Promise<void>,

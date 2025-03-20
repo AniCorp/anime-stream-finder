@@ -1,8 +1,18 @@
 import { Anime, AnimeItem } from '#interfaces/anime';
 import { StreamSource, StreamData } from '#interfaces/stream';
-import { api_crawler, browser_crawler } from '#utils/crawler';
+import { crawler, browser_crawler } from '#utils/crawler';
 import { attachSimilarityScores } from '#utils/similarity';
 import crypto from 'crypto';
+
+interface DownloadLinkDetail {
+  pahewin: string;
+  source: string;
+  resolution: string;
+  size: string;
+  language: string;
+  kwik: string;
+  url?: string | null;
+}
 
 function generateCookie(): string {
   const randomString = crypto.randomBytes(8).toString('hex');
@@ -57,7 +67,7 @@ async function search(anime: Anime): Promise<any[]> {
   const results: any[] = [];
   const cookie = generateCookie();
 
-  await api_crawler(urls, cookie, async ({ body, request }) => {
+  await crawler(urls, cookie, async ({ body, request }) => {
     try {
       const responseBody = body;
       if (responseBody) {
@@ -87,7 +97,7 @@ async function getEpisodeSession(anime: { episodeNumber: number }, detail: { ses
     const cookie = generateCookie();
     let pageData: any;
 
-    await api_crawler([url], cookie, async ({ body, request }) => {
+    await crawler([url], cookie, async ({ body, request }) => {
       try {
         if (body) {
           pageData = JSON.parse(body.toString());
@@ -136,7 +146,7 @@ async function fetchMatchingAnimeDetails(
 
   const results: any[] = [];
 
-  await api_crawler(urls, cookie, async ({ body, request }) => {
+  await crawler(urls, cookie, async ({ body, request }) => {
     try {
       if (body) {
         const detailData = JSON.parse(body.toString());
@@ -159,36 +169,16 @@ async function fetchMatchingAnimeDetails(
 async function extractDownloadLinkDetails(
   animeSession: string,
   episodeSession: string
-): Promise<
-  {
-    url: string;
-    source: string;
-    resolution: string;
-    size: string;
-    language: string;
-  }[]
-> {
+): Promise<DownloadLinkDetail[]> {
   const playUrl = `https://animepahe.ru/play/${animeSession}/${episodeSession}`;
   const cookie = generateCookie();
-  let downloadLinks: {
-    url: string;
-    source: string;
-    resolution: string;
-    size: string;
-    language: string;
-  }[] = [];
+  let downloadLinks: DownloadLinkDetail[] = [];
 
   await browser_crawler(playUrl, cookie, async (context) => {
     const { page } = context;
     await page.waitForSelector('#pickDownload');
     downloadLinks = await page.evaluate(() => {
-      const results: {
-        url: string;
-        source: string;
-        resolution: string;
-        size: string;
-        language: string;
-      }[] = [];
+      const results: DownloadLinkDetail[] = [];
       const container = document.getElementById('pickDownload');
       if (container) {
         const links = container.querySelectorAll('a.dropdown-item');
@@ -217,11 +207,12 @@ async function extractDownloadLinkDetails(
           }
 
           results.push({
-            url: href,
+            pahewin: href,
             source,
             resolution,
             size,
             language,
+            kwik: ''
           });
         });
       }
@@ -232,17 +223,113 @@ async function extractDownloadLinkDetails(
   return downloadLinks;
 }
 
+async function resolveCountdownSkipLinks(
+  playDetails: DownloadLinkDetail[]
+): Promise<DownloadLinkDetail[]> {
+  const urls = playDetails.map(detail => detail.pahewin);
+  const cookie = generateCookie();
+
+  await crawler(urls, cookie, async ({ body, request }) => {
+    try {
+      const pageContent = body.toString();
+      const regex = /attr\("href",\s*"([^"]+)"\)/g;
+      let match: RegExpExecArray | null;
+      let tokenUrl = '';
+      while ((match = regex.exec(pageContent)) !== null) {
+        if (match[1].startsWith('http')) {
+          tokenUrl = match[1];
+          break;
+        }
+      }
+
+      const detail = playDetails.find(item => item.pahewin === request.url);
+      if (detail && tokenUrl) {
+        detail.kwik = tokenUrl;
+      }
+    } catch (error) {
+      console.error(`Error processing skip link from ${request.url}:`, error);
+    }
+  });
+
+  return playDetails;
+}
+
+async function getMp4Url(pahewinDetails: DownloadLinkDetail[]): Promise<DownloadLinkDetail[]> {
+  const urls = pahewinDetails.map(detail => detail.kwik);
+  const cookie = generateCookie();
+
+  try {
+    await browser_crawler(urls, cookie, async (context) => {
+      const { page, request } = context;
+      await page.waitForSelector('form', { timeout: 10000 });
+
+      const formAction: string = await page.$eval('form', (form) => (form as HTMLFormElement).action);
+      const token: string = await page.$eval('input[name="_token"]', (input) => (input as HTMLInputElement).value);
+
+      const cookies = await page.context().cookies();
+      const cookiesStr = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ');
+
+      const response = await page.request.fetch(formAction, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Cookie': cookiesStr,
+          'Referer': formAction
+        },
+        data: `_token=${encodeURIComponent(token)}`,
+        maxRedirects: 0,
+      });
+
+      const mp4Url = response.headers()['location'] || null;
+      const detail = pahewinDetails.find(item => item.kwik === request.url);
+      if (detail && mp4Url) {
+        detail.kwik = mp4Url;
+      }
+    });
+  } catch (error) {
+    console.error(`Error getting MP4 URL:`, error);
+  }
+
+  return pahewinDetails;
+}
+
+function formatStreamData(downloadLinks: DownloadLinkDetail[]): StreamData {
+  const streamData: StreamData = { links: {} };
+
+  for (const link of downloadLinks) {
+    const lang = link.language;
+    const res = link.resolution;
+
+    if (!streamData.links[lang]) {
+      streamData.links[lang] = {};
+    }
+
+    streamData.links[lang][res] = {
+      source: link.source,
+      url: link.kwik,
+      size: link.size
+    };
+  }
+
+  return streamData;
+}
+
 export const animePahe: StreamSource = {
   async searchAnime(anime: Anime): Promise<StreamData | null> {
     const animeList = await search(anime);
-    const details = await fetchMatchingAnimeDetails(anime, animeList);
-    const episode = await getEpisodeSession(anime, details);
+    const animeDetails = await fetchMatchingAnimeDetails(anime, animeList);
+    if (!animeDetails.session) return null;
 
-    const animeSession = details.session;
-    const episodeSession = episode.session;
+    const episodeDetails = await getEpisodeSession(anime, animeDetails);
+    if (!episodeDetails.session) return null;
 
-    const playDetails = extractDownloadLinkDetails(animeSession, episodeSession)
-    
-    return playDetails;
+    const animeSession = animeDetails.session;
+    const episodeSession = episodeDetails.session;
+
+    const playDetails = await extractDownloadLinkDetails(animeSession, episodeSession);
+    const pahewinDetails = await resolveCountdownSkipLinks(playDetails);
+    const kwikDetails = await getMp4Url(pahewinDetails);
+
+    return formatStreamData(kwikDetails);
   },
 };
