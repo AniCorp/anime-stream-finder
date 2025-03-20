@@ -1,6 +1,6 @@
 import { Anime, AnimeItem } from '#interfaces/anime';
 import { StreamSource, StreamData } from '#interfaces/stream';
-import { crawler } from '#utils/crawler';
+import { api_crawler } from '#utils/crawler';
 import { attachSimilarityScores } from '#utils/similarity';
 import crypto from 'crypto';
 
@@ -27,10 +27,10 @@ async function flattenAndDeduplicate(responses: any[]): Promise<any[]> {
   return uniqueAnimes;
 }
 
-async function filterByAverageScore(animeList: AnimeItem[]) {
+async function filterByAverageScore(animeList: AnimeItem[]): Promise<AnimeItem[]> {
   const scores = animeList
     .map(anime => anime.similarity?.highestScore)
-    .filter(score => typeof score === 'number');
+    .filter((score): score is number => typeof score === 'number');
 
   const averageScore = scores.reduce((acc, curr) => acc + curr, 0) / scores.length;
 
@@ -57,11 +57,12 @@ async function search(anime: Anime): Promise<any[]> {
   const results: any[] = [];
   const cookie = generateCookie();
 
-  await crawler(urls, cookie, async ({ page, request }) => {
+  await api_crawler(urls, cookie, async ({ body, request }) => {
     try {
-      const responseBody = await page.evaluate(() => document.body.textContent);
+      const responseBody = body;
       if (responseBody) {
-        const json = JSON.parse(responseBody);
+        // Convert to string before parsing, if necessary.
+        const json = JSON.parse(responseBody.toString());
         results.push(json);
       }
     } catch (error) {
@@ -76,7 +77,7 @@ async function search(anime: Anime): Promise<any[]> {
   return dataFilteredByAverageScore;
 }
 
-async function getCorrectAnimeDetails(
+async function fetchMatchingAnimeDetails(
   anime: Anime,
   animeList: AnimeItem[]
 ): Promise<any> {
@@ -84,42 +85,39 @@ async function getCorrectAnimeDetails(
     throw new Error("No malId or anilistId provided");
 
   const cookie = generateCookie();
-  for (const animeItem of animeList) {
-    const sessionId = animeItem.session;
-    const url = `https://animepahe.ru/api?m=detail&id=${sessionId}`;
-    let detailData: any = null;
+  const urls: string[] = animeList.map(
+    animeItem => `https://animepahe.ru/api?m=detail&id=${animeItem.session}`
+  );
 
-    await crawler([url], cookie, async ({ page, request }) => {
-      try {
-        const responseBody = await page.evaluate(() => document.body.textContent);
-        if (responseBody) {
-          detailData = JSON.parse(responseBody);
-        }
-      } catch (error) {
-        console.error(`Error parsing JSON from ${request.url}:`, error);
+  const responses: any[] = [];
+  await api_crawler(urls, cookie, async ({ body, request }) => {
+    try {
+      if (body) {
+        const detailData = JSON.parse(body.toString());
+        responses.push(detailData);
       }
-    });
+    } catch (error) {
+      console.error(`Error parsing JSON from ${request.url}:`, error);
+    }
+  });
 
-    if (detailData) {
-      const malMatch =
-        anime.malId !== undefined ? detailData.mal === anime.malId : true;
-      const anilistMatch =
-        anime.anilistId !== undefined ? detailData.anilist === anime.anilistId : true;
+  for (const detailData of responses) {
+    const malMatch =
+      anime.malId !== undefined ? detailData.mal === anime.malId : true;
+    const anilistMatch =
+      anime.anilistId !== undefined ? detailData.anilist === anime.anilistId : true;
 
-      if (malMatch && anilistMatch) {
-        return detailData;
-      }
+    if (malMatch && anilistMatch) {
+      return detailData;
     }
   }
-
   throw new Error("Anime not found");
 }
 
 export const animePahe: StreamSource = {
   async searchAnime(anime: Anime): Promise<StreamData | null> {
     const animeList = await search(anime);
-    const details = await getCorrectAnimeDetails(anime, animeList);
-
+    const details = await fetchMatchingAnimeDetails(anime, animeList);
     return details;
   },
 };
