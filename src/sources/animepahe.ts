@@ -76,6 +76,52 @@ async function search(anime: Anime): Promise<any[]> {
   return dataFilteredByAverageScore;
 }
 
+async function getEpisodeSession(anime: { episodeNumber: number }, detail: { session: string }): Promise<string | null> {
+  let episodeSession: string | null = null;
+  let page = 1;
+  const baseUrl = `https://animepahe.ru/api?m=release&id=${detail.session}&sort=episode_asc&page=`;
+  let targetEpisode: number | null = null;
+
+  while (true) {
+    const url = baseUrl + page;
+    const cookie = generateCookie();
+    let pageData: any;
+
+    await api_crawler([url], cookie, async ({ body, request }) => {
+      try {
+        if (body) {
+          pageData = JSON.parse(body.toString());
+        }
+      } catch (error) {
+        console.error(`Error parsing JSON from ${request.url}:`, error);
+      }
+    });
+
+    if (!pageData || !pageData.data || pageData.data.length === 0) {
+      break;
+    }
+
+    if (targetEpisode === null && page === 1) {
+      const firstEpisodeNumber = pageData.data[0].episode;
+      targetEpisode = firstEpisodeNumber + (anime.episodeNumber - 1);
+    }
+
+    const episodeItem = pageData.data.find((ep: any) => ep.episode === targetEpisode);
+    if (episodeItem) {
+      episodeSession = episodeItem.session;
+      break;
+    }
+
+    if (pageData.current_page >= pageData.last_page) {
+      break;
+    }
+
+    page++;
+  }
+
+  return episodeSession;
+}
+
 async function fetchMatchingAnimeDetails(
   anime: Anime,
   animeList: AnimeItem[]
@@ -106,7 +152,7 @@ async function fetchMatchingAnimeDetails(
     const anilistMatch = anime.anilistId !== undefined ? detailData.anilist === anime.anilistId : true;
     return malMatch && anilistMatch;
   });
-  
+
   return matchingDetail || {};
 }
 
@@ -114,6 +160,7 @@ export const animePahe: StreamSource = {
   async searchAnime(anime: Anime): Promise<StreamData | null> {
     const animeList = await search(anime);
     const details = await fetchMatchingAnimeDetails(anime, animeList);
-    return details;
+    const episodeSession = await getEpisodeSession(anime, details);
+    return episodeSession;
   },
 };
