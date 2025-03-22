@@ -12,7 +12,9 @@
 	  "paths": {
 		"#interfaces/*": ["src/interfaces/*"],
 		"#utils/*": ["src/utils/*"],
-		"#sources/*": ["src/sources/*"]
+		"#sources/*": ["src/sources/*"],
+		"#services/*": ["src/services/*"],
+		"#root/*": ["src/*"]
 	  }
 	},
 	"include": ["src/**/*"],

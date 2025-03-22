@@ -87,7 +87,6 @@ async function search(anime: Anime): Promise<any[]> {
 }
 
 async function getEpisodeSession(anime: { episodeNumber: number }, detail: { session: string }): Promise<any> {
-  let episodeSession: string | null = null;
   let page = 1;
   const baseUrl = `https://animepahe.ru/api?m=release&id=${detail.session}&sort=episode_asc&page=`;
   let targetEpisode: number | null = null;
@@ -118,7 +117,6 @@ async function getEpisodeSession(anime: { episodeNumber: number }, detail: { ses
 
     const episodeItem = pageData.data.find((ep: any) => ep.episode === targetEpisode);
     if (episodeItem) {
-      episodeSession = episodeItem.session;
       return episodeItem;
     }
 
