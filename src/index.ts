@@ -53,7 +53,7 @@ app.get('/find/:taskId', (req: Request, res: Response) => {
     }
   
     if (task.status === 'pending') {
-      res.json({ status: 'pending' });
+      res.status(202).json({ status: 'pending' });
     }
 
   
