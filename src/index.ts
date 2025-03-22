@@ -44,7 +44,7 @@ app.post('/find', (req: Request, res: Response) => {
   res.json({ taskId });
 });
 
-app.get('/result/:taskId', (req: Request, res: Response) => {
+app.get('/find/:taskId', (req: Request, res: Response) => {
     const { taskId } = req.params;
     const task = tasks[taskId];
   
