@@ -1,5 +1,6 @@
 import { findAnime } from '#root/dispatcher';
 import { Anime } from '#interfaces/anime';
+import { ErrorHandler } from 'crawlee';
 
 export async function findStream(anime: Anime): Promise<any> {
     if (!anime.englishTitle && !anime.title && !anime.japaneseTitle) {
@@ -33,12 +34,7 @@ export async function findStream(anime: Anime): Promise<any> {
             status: 200, 
             headers: { 'Content-Type': 'application/json' }
         }
-    } catch (error) {
-        console.error('Internal error:', error);
-        return {
-            error: 'Internal Server Error',
-            status: 500, 
-            headers: { 'Content-Type': 'application/json' }
-        }
+    } catch (error: any) {
+        throw new Error(error)
     }
 }
