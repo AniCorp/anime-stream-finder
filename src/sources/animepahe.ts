@@ -6,7 +6,7 @@ import crypto from 'crypto';
 
 interface DownloadLinkDetail {
   pahewin: string;
-  source: string;
+  author: string;
   resolution: string;
   size: string;
   language: string;
@@ -184,7 +184,7 @@ async function extractDownloadLinkDetails(
         const links = container.querySelectorAll('a.dropdown-item');
         links.forEach((link) => {
           const href = link.getAttribute('href') || '';
-          let source = '';
+          let author = '';
           let resolution = '';
           let size = '';
           let language = 'jpn';
@@ -201,14 +201,14 @@ async function extractDownloadLinkDetails(
 
           const match = textContent.match(/^(.+?)\s·\s(\d+p)\s\((.+?)\)$/);
           if (match) {
-            source = match[1].trim();
+            author = match[1].trim();
             resolution = match[2].trim();
             size = match[3].trim();
           }
 
           results.push({
             pahewin: href,
-            source,
+            author,
             resolution,
             size,
             language,
@@ -310,7 +310,7 @@ function formatStreamData(downloadLinks: DownloadLinkDetail[]): StreamData {
     }
 
     streamData.links[source][lang][res] = {
-      author: source,
+      author: link.author,
       url: link.kwik,
       size: link.size,
     };
