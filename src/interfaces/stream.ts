@@ -2,13 +2,15 @@ import { Anime } from "./anime";
 
 export interface StreamData {
     links: {
-        [language: string]: {
-            [resolution: string]: {
-                source: string,
-                url: string,
-                size?: string | number,
-            };
-        };
+        [source: string]: {
+            [language: string]: {
+                [resolution: string]: {
+                    author: string,
+                    url: string,
+                    size?: string | number,
+                }
+            }
+        }
     };
 }
   
