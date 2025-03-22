@@ -293,28 +293,19 @@ async function getMp4Url(pahewinDetails: DownloadLinkDetail[]): Promise<Download
   return pahewinDetails;
 }
 
-function formatStreamData(downloadLinks: DownloadLinkDetail[]): StreamData {
-  const source = "animepahe";
-  const streamData: StreamData = { links: {} };
-
-  // Initialize the source as an array to include all download links.
-  streamData.links[source] = [];
-
-  for (const link of downloadLinks) {
-    streamData.links[source].push({
-      author: link.author,
-      url: link.kwik,
-      size: link.size,
-      resolution: link.resolution,
-      language: link.language,
-    });
-  }
-
-  return streamData;
+export function formatStreamData(downloadLinks: DownloadLinkDetail[]): StreamData[] {
+  return downloadLinks.map(link => ({
+    author: link.author,
+    url: link.kwik,
+    size: link.size,
+    resolution: link.resolution,
+    language: link.language,
+  }));
 }
 
 export const animePahe: StreamSource = {
-  async searchAnime(anime: Anime): Promise<StreamData | null> {
+  name: "animepahe",
+  async searchAnime(anime: Anime): Promise<StreamData[] | null> {
     const animeList = await search(anime);
     const animeDetails = await fetchMatchingAnimeDetails(anime, animeList);
     if (!animeDetails.session) return null;

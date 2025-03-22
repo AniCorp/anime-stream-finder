@@ -1,20 +1,21 @@
 import { Anime } from '#interfaces/anime';
-import { StreamSource, StreamData } from '#interfaces/stream';
+import { SourceStreamData, StreamSource, StreamData } from '#interfaces/stream';
 import { animePahe } from '#sources/animepahe';
 
 const sources: StreamSource[] = [animePahe];
 
-export async function findAnime(anime: Anime): Promise<StreamData[]> {
+export async function findAnime(anime: Anime): Promise<SourceStreamData[]> {
   const results = await Promise.all(
     sources.map(async (source) => {
       try {
-        return await source.searchAnime(anime);
+        const streams: StreamData[] | null = await source.searchAnime(anime);
+        return { name: source.name, streams: streams ?? [] };
       } catch (error) {
-        console.error(`Error from a source: ${error}`);
+        console.error(`Error from ${source.name}: ${error}`);
         return null;
       }
     })
   );
 
-  return results.filter((result): result is StreamData => result !== null);
+  return results.filter((result): result is SourceStreamData => result !== null);
 }
