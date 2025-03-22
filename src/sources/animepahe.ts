@@ -294,26 +294,20 @@ async function getMp4Url(pahewinDetails: DownloadLinkDetail[]): Promise<Download
 }
 
 function formatStreamData(downloadLinks: DownloadLinkDetail[]): StreamData {
-  const streamData: StreamData = { links: {} };
   const source = "animepahe";
+  const streamData: StreamData = { links: {} };
 
-  if (!streamData.links[source]) {
-    streamData.links[source] = {};
-  }
+  // Initialize the source as an array to include all download links.
+  streamData.links[source] = [];
 
   for (const link of downloadLinks) {
-    const lang = link.language;
-    const res = link.resolution;
-
-    if (!streamData.links[source][lang]) {
-      streamData.links[source][lang] = {};
-    }
-
-    streamData.links[source][lang][res] = {
+    streamData.links[source].push({
       author: link.author,
       url: link.kwik,
       size: link.size,
-    };
+      resolution: link.resolution,
+      language: link.language,
+    });
   }
 
   return streamData;
