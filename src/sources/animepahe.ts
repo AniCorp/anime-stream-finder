@@ -258,37 +258,36 @@ async function getMp4Url(pahewinDetails: DownloadLinkDetail[]): Promise<Download
   const urls = pahewinDetails.map(detail => detail.kwik);
   const cookie = generateCookie();
 
-  try {
-    await browser_crawler(urls, cookie, async (context) => {
-      const { page, request } = context;
-      await page.waitForSelector('form', { timeout: 10000 });
+  await browser_crawler(urls, cookie, async (context) => {
+    const { page, request } = context;
+    await page.waitForSelector('form', { timeout: 10000 });
 
-      const formAction: string = await page.$eval('form', (form) => (form as HTMLFormElement).action);
-      const token: string = await page.$eval('input[name="_token"]', (input) => (input as HTMLInputElement).value);
+    const formAction: string = await page.$eval('form', (form) => (form as HTMLFormElement).action);
+    const token: string = await page.$eval('input[name="_token"]', (input) => (input as HTMLInputElement).value);
 
-      const cookies = await page.context().cookies();
-      const cookiesStr = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ');
+    const cookies = await page.context().cookies();
+    const cookiesStr = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ');
 
-      const response = await page.request.fetch(formAction, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie': cookiesStr,
-          'Referer': formAction
-        },
-        data: `_token=${encodeURIComponent(token)}`,
-        maxRedirects: 0,
-      });
-
-      const mp4Url = response.headers()['location'] || null;
-      const detail = pahewinDetails.find(item => item.kwik === request.url);
-      if (detail && mp4Url) {
-        detail.kwik = mp4Url;
-      }
+    const response = await page.request.fetch(formAction, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': cookiesStr,
+        'Referer': formAction
+      },
+      data: `_token=${encodeURIComponent(token)}`,
+      maxRedirects: 0,
     });
-  } catch (error) {
-    console.error(`Error getting MP4 URL:`, error);
-  }
+
+    const mp4Url = response.headers()['location'] || null;
+    const detail = pahewinDetails.find(item => item.kwik === request.url);
+
+    if (detail && mp4Url) {
+      detail.kwik = mp4Url;
+    } else {
+      throw new Error(`MP4 URL extraction failed for ${request.url}`);
+    }
+  });
 
   return pahewinDetails;
 }
