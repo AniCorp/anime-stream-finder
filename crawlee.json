@@ -1,0 +1,5 @@
+{
+    "persistStateIntervalMillis": 10000,
+    "logLevel": "ERROR",
+    "CRAWLEE_PURGE_ON_START": true
+  }

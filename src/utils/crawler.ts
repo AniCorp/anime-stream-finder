@@ -4,7 +4,6 @@ import {
   type PlaywrightCrawlingContext,
   CheerioCrawler,
   CheerioCrawlingContext,
-  KeyValueStore
 } from 'crawlee';
 import { BrowserName, DeviceCategory, OperatingSystemsName } from '@crawlee/browser-pool';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,7 +16,6 @@ export async function browser_crawler(
 ): Promise<void> {
   const taskId = uuidv4();
   const requestQueue = await RequestQueue.open(taskId);
-  const kvStore = await KeyValueStore.open('default');
 
   const urlList = typeof urls === 'string' ? [urls] : urls;
   for (const url of urlList) {
@@ -33,7 +31,11 @@ export async function browser_crawler(
     browserPoolOptions: {
       fingerprintOptions: {
         fingerprintGeneratorOptions: {
-          browsers: [{ name: BrowserName.chrome }],
+          browsers: [
+            {
+              name: BrowserName.chrome,
+            },
+          ],
           devices: [DeviceCategory.mobile],
           operatingSystems: [OperatingSystemsName.android],
         },
@@ -47,9 +49,8 @@ export async function browser_crawler(
     },
   });
 
-  await crawler.run();
-  await kvStore.drop();
-  await requestQueue.drop();
+  await crawler.run()
+  await requestQueue.drop()
 }
 
 export async function crawler(
@@ -60,7 +61,6 @@ export async function crawler(
 ): Promise<void> {
   const taskId = uuidv4();
   const requestQueue = await RequestQueue.open(taskId);
-  const kvStore = await KeyValueStore.open('default');
 
   const urlList = typeof urls === 'string' ? [urls] : urls;
   for (const url of urlList) {
@@ -82,6 +82,5 @@ export async function crawler(
   });
 
   await crawler.run();
-  await kvStore.drop();
-  await requestQueue.drop();
+  await requestQueue.drop()
 }
