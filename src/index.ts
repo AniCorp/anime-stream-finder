@@ -22,6 +22,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use((err: any, req: Request, res: Response, next: Function) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    res.status(400).json({ error: 'Invalid JSON payload' });
+  }
+  next();
+});
+
 app.post('/find', (req: Request, res: Response) => {
   const requestData: Anime = req.body;
   const taskId = uuidv4();
@@ -31,6 +38,7 @@ app.post('/find', (req: Request, res: Response) => {
   (async () => {
     try {
       const response: ApiResponse = await findStream(requestData);
+      console.log(response)
       tasks[taskId] = { status: 'done', result: response };
     } catch (error) {
       console.error(error);
@@ -50,13 +58,14 @@ app.get('/find/:taskId', (req: Request, res: Response) => {
   
     if (!task) {
       res.status(404).json({ error: 'Task not found' });
+      return;
     }
   
     if (task.status === 'pending') {
       res.status(202).json({ status: 'pending' });
+      return;
     }
 
-  
     const { result } = task;
     res.status(result?.status || 200).json(result?.data || { error: result?.error });
 });

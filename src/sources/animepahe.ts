@@ -186,24 +186,23 @@ async function extractDownloadLinkDetails(
           let resolution = '';
           let size = '';
           let language = 'jpn';
-
-          const langSpan = link.querySelector('span');
-          if (langSpan && langSpan.textContent) {
-            language = langSpan.textContent.trim();
+          const languageSpan = link.querySelector('span.badge-warning');
+          if (languageSpan && languageSpan.textContent) {
+            language = languageSpan.textContent.trim();
           }
-
-          let textContent = link.textContent || '';
-          if (langSpan && langSpan.textContent) {
-            textContent = textContent.replace(langSpan.textContent, '').trim();
-          }
-
-          const match = textContent.match(/^(.+?)\s·\s(\d+p)\s\((.+?)\)$/);
+    
+          const linkClone = link.cloneNode(true) as HTMLElement;
+          const spanElements = linkClone.querySelectorAll('span');
+          spanElements.forEach(span => span.remove());
+          const cleanText = linkClone.textContent?.trim() || '';
+    
+          const match = cleanText.match(/^(.+?)\s·\s(\d+p)\s\((.+?)\)$/);
           if (match) {
             author = match[1].trim();
             resolution = match[2].trim();
             size = match[3].trim();
           }
-
+    
           results.push({
             pahewin: href,
             author,
@@ -317,6 +316,8 @@ export const animePahe: StreamSource = {
     const pahewinDetails = await resolveCountdownSkipLinks(playDetails);
     const kwikDetails = await getMp4Url(pahewinDetails);
 
-    return formatStreamData(kwikDetails);
+    const result = formatStreamData(kwikDetails)
+
+    return result;
   },
 };
