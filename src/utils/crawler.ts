@@ -4,9 +4,14 @@ import {
   type PlaywrightCrawlingContext,
   CheerioCrawler,
   CheerioCrawlingContext,
+  Configuration,
 } from 'crawlee';
 import { BrowserName, DeviceCategory, OperatingSystemsName } from '@crawlee/browser-pool';
 import { v4 as uuidv4 } from 'uuid';
+
+const config = new Configuration({
+  persistStorage: false,
+});
 
 export async function browser_crawler(
   urls: string | string[],
@@ -47,7 +52,7 @@ export async function browser_crawler(
     async failedRequestHandler({ request, error }) {
       console.error(`Request ${request.url} failed after ${maxRequestRetries} retries. Error:`, error);
     },
-  });
+  }, config);
 
   await crawler.run()
   await requestQueue.drop()
@@ -79,7 +84,7 @@ export async function crawler(
     async failedRequestHandler({ request, error }) {
       console.error(`Request ${request.url} failed after ${maxRequestRetries} retries. Error:`, error);
     },
-  });
+  }, config);
 
   await crawler.run();
   await requestQueue.drop()
