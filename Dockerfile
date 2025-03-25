@@ -21,17 +21,18 @@ RUN npm run build
 FROM apify/actor-node:20
 WORKDIR /usr/src/app
 
-# Install system dependency for sharp using apk (Alpine Linux package manager)
+# Install system dependency for sharp using apk (Alpine Linux)
 USER root
 RUN apk update && apk add --no-cache vips-dev
 
-# Switch back to node for subsequent operations
+# Ensure entire working directory is owned by node
+RUN chown -R node:node /usr/src/app
+
+# Switch to node user for the remainder of the build
 USER node
 
-# Copy built files from the builder stage
+# Copy built files and package files with correct ownership
 COPY --from=builder /usr/src/app/dist ./dist
-
-# Copy package files with proper ownership
 COPY --chown=node:node package*.json ./
 
 # Install production dependencies (omitting dev and optional packages)
@@ -44,7 +45,7 @@ RUN npm --quiet set progress=false \
     && echo "NPM version:" \
     && npm --version
 
-# Copy remaining source files with proper ownership
+# Copy remaining source files with correct ownership
 COPY --chown=node:node . ./
 
 # Run the application
