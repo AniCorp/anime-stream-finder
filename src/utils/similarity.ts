@@ -16,7 +16,7 @@ const getEmbeddingPipeline = (() => {
       const extractor: FeatureExtractionPipeline = await pipeline(
         'feature-extraction',
         'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
-        { device: -1 } as any
+        { device: 'cpu' } as any
       );
 
       embedder = async (input: string) => {
