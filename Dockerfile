@@ -2,17 +2,18 @@
 FROM apify/actor-node-playwright-chrome:20 AS builder
 WORKDIR /usr/src/app
 
-# Copy package files
+# Copy package files and update ownership to the 'node' user
 COPY package*.json ./
+RUN chown -R node:node /usr/src/app
 
-# (Optional) Adjust permissions if necessary
-# RUN chown -R node:node /usr/src/app
+# Switch to the 'node' user to avoid permission issues
+USER node
 
-# Install dependencies
+# Install dependencies as node user
 RUN npm install --include=dev --audit=false
 
-# Copy the rest of the source files and build the project
-COPY . ./
+# Copy the rest of the source files (ensure files are owned by node)
+COPY --chown=node:node . ./
 RUN npm run build
 
 # Final stage
@@ -22,7 +23,7 @@ WORKDIR /usr/src/app
 # Copy built files from the builder stage
 COPY --from=builder /usr/src/app/dist ./dist
 
-# Copy package files again
+# Copy package files for caching; ownership is preserved via COPY (or adjust if needed)
 COPY package*.json ./
 
 # Install production dependencies
@@ -35,8 +36,8 @@ RUN npm --quiet set progress=false \
     && echo "NPM version:" \
     && npm --version
 
-# Copy remaining source files
-COPY . ./
+# Copy the rest of the source files with proper ownership
+COPY --chown=node:node . ./
 
 # Run the application
 CMD ["npm", "run", "start:prod", "--silent"]
