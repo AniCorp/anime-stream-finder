@@ -1,68 +1,52 @@
-import { Anime, AnimeItem } from '#interfaces/anime';
-import { pipeline, FeatureExtractionPipeline, env } from '@xenova/transformers';
+import { Anime, AnimeItem } from "#interfaces/anime";
 
-// Disable WASM backend by setting its "enabled" flag to false.
-((env.backends.onnx as any).wasm) = { enabled: false };
+type FrequencyMap = Record<string, number>;
 
-type EmbedderPipeline = (input: string) => Promise<{ data: number[] }>;
+/**
+ * Converts a text string into a frequency map.
+ */
+function textToFreqVector(text: string): FrequencyMap {
+  // Extract words (ignoring punctuation) and convert to lowercase.
+  const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+  return words.reduce((acc, word) => {
+    acc[word] = (acc[word] || 0) + 1;
+    return acc;
+  }, {} as FrequencyMap);
+}
 
-const getEmbeddingPipeline = (() => {
-  let embedder: EmbedderPipeline | null = null;
-
-  return async (): Promise<EmbedderPipeline> => {
-    if (!embedder) {
-      // Force CPU usage by specifying device: -1.
-      // (We cast the options as any to bypass type restrictions.)
-      const extractor: FeatureExtractionPipeline = await pipeline(
-        'feature-extraction',
-        'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
-        { device: 'cpu' } as any
-      );
-
-      embedder = async (input: string) => {
-        const result = await extractor(input, { pooling: 'mean', normalize: true });
-        let embeddingArray: number[];
-
-        // If result.data is missing, try to use cpuData as fallback.
-        if (result.data == null && (result as any).cpuData) {
-          embeddingArray = Array.from((result as any).cpuData as Iterable<number>);
-        } else if (Array.isArray(result.data)) {
-          // If result.data is a 2D array, flatten it.
-          embeddingArray = (result.data as number[][]).flat();
-        } else {
-          embeddingArray = Array.from(result.data as Iterable<number>);
-        }
-        return { data: embeddingArray };
-      };
+/**
+ * Computes the cosine similarity between two frequency maps.
+ */
+function cosineSimilarityTF(vecA: FrequencyMap, vecB: FrequencyMap): number {
+  let dotProduct = 0;
+  for (const key in vecA) {
+    if (vecB[key]) {
+      dotProduct += vecA[key] * vecB[key];
     }
-    return embedder;
-  };
-})();
-
-function cosineSimilarity(vecA: number[], vecB: number[]) {
-  const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
-  const magnitudeA = Math.sqrt(vecA.reduce((sum, val) => sum + val * val, 0));
-  const magnitudeB = Math.sqrt(vecB.reduce((sum, val) => sum + val * val, 0));
+  }
+  const magnitudeA = Math.sqrt(Object.values(vecA).reduce((sum, val) => sum + val * val, 0));
+  const magnitudeB = Math.sqrt(Object.values(vecB).reduce((sum, val) => sum + val * val, 0));
+  if (magnitudeA === 0 || magnitudeB === 0) return 0;
   return dotProduct / (magnitudeA * magnitudeB);
 }
 
-export async function attachSimilarityScores(anime: Anime, animeWebObject: AnimeItem[]) {
-  const embedder = await getEmbeddingPipeline();
-
-  // Remove duplicates and undefined values among titles.
+/**
+ * Attaches similarity scores to each AnimeItem in animeWebObject by comparing its title
+ * against the available titles in the anime object (e.g. title, englishTitle, japaneseTitle).
+ * Instead of using transformer embeddings, we use our own term-frequency based cosine similarity.
+ */
+export function attachSimilarityScores(anime: Anime, animeWebObject: AnimeItem[]) {
+  // Remove duplicates and undefined values among the anime titles.
   const titlesToCompare = ([anime.title, anime.englishTitle, anime.japaneseTitle] as (string | undefined)[])
     .filter((value, index, self): value is string => Boolean(value) && self.indexOf(value) === index);
 
-  // Get embeddings for each title.
-  const animeTitleEmbeddings = await Promise.all(
-    titlesToCompare.map((title) => embedder(title))
-  );
+  // Create frequency vectors for each title in the anime.
+  const animeTitleVectors = titlesToCompare.map(textToFreqVector);
 
   for (const item of animeWebObject) {
-    const itemEmbedding = await embedder(item.title);
-    const similarities = titlesToCompare.map((_, idx) =>
-      cosineSimilarity(animeTitleEmbeddings[idx].data, itemEmbedding.data)
-    );
+    const itemVector = textToFreqVector(item.title);
+    // Compute similarity against each title vector.
+    const similarities = animeTitleVectors.map(vec => cosineSimilarityTF(vec, itemVector));
     const highestSimilarity = Math.max(...similarities);
     item.similarity = {
       highestScore: highestSimilarity,
