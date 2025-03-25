@@ -24,7 +24,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 // Run the container (adjust ports as needed)
-                sh "docker run -d -p ${PORT}:${PORT} ${IMAGE_NAME}:${IMAGE_TAG}"
+                sh "docker run -d -p ${PORT}:${PORT} -e PORT=${PORT} ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
     }
