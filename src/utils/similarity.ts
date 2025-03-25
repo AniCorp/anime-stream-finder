@@ -1,5 +1,8 @@
 import { Anime, AnimeItem } from '#interfaces/anime';
-import { pipeline, FeatureExtractionPipeline } from '@xenova/transformers';
+import { pipeline, FeatureExtractionPipeline, env } from '@xenova/transformers';
+
+// Disable WASM backend by setting its "enabled" flag to false.
+((env.backends.onnx as any).wasm) = { enabled: false };
 
 type EmbedderPipeline = (input: string) => Promise<{ data: number[] }>;
 
@@ -8,22 +11,23 @@ const getEmbeddingPipeline = (() => {
 
   return async (): Promise<EmbedderPipeline> => {
     if (!embedder) {
-      // Do not pass a "device" option here because it isn't defined in PretrainedOptions.
+      // Force CPU usage by specifying device: -1.
+      // (We cast the options as any to bypass type restrictions.)
       const extractor: FeatureExtractionPipeline = await pipeline(
         'feature-extraction',
-        'Xenova/paraphrase-multilingual-MiniLM-L12-v2'
+        'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
+        { device: -1 } as any
       );
 
       embedder = async (input: string) => {
         const result = await extractor(input, { pooling: 'mean', normalize: true });
-
         let embeddingArray: number[];
 
-        // If result.data is null and cpuData is available, use it.
+        // If result.data is missing, try to use cpuData as fallback.
         if (result.data == null && (result as any).cpuData) {
           embeddingArray = Array.from((result as any).cpuData as Iterable<number>);
         } else if (Array.isArray(result.data)) {
-          // In case result.data is a 2D array, flatten it.
+          // If result.data is a 2D array, flatten it.
           embeddingArray = (result.data as number[][]).flat();
         } else {
           embeddingArray = Array.from(result.data as Iterable<number>);
@@ -45,11 +49,11 @@ function cosineSimilarity(vecA: number[], vecB: number[]) {
 export async function attachSimilarityScores(anime: Anime, animeWebObject: AnimeItem[]) {
   const embedder = await getEmbeddingPipeline();
 
-  // Remove duplicates and undefined values among titles
+  // Remove duplicates and undefined values among titles.
   const titlesToCompare = ([anime.title, anime.englishTitle, anime.japaneseTitle] as (string | undefined)[])
     .filter((value, index, self): value is string => Boolean(value) && self.indexOf(value) === index);
 
-  // Get embeddings for each title
+  // Get embeddings for each title.
   const animeTitleEmbeddings = await Promise.all(
     titlesToCompare.map((title) => embedder(title))
   );
