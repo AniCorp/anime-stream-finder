@@ -10,7 +10,8 @@ const getEmbeddingPipeline = (() => {
       if (!embedder) {
         const extractor: FeatureExtractionPipeline = await pipeline(
           'feature-extraction',
-          'Xenova/paraphrase-multilingual-MiniLM-L12-v2'
+          'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
+          { backend: 'wasm' } as any
         );
   
         embedder = async (input: string) => {

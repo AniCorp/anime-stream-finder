@@ -8,6 +8,7 @@
         "cors": "^2.8.5",
         "crawlee": "^3.0.0",
         "express": "^4.21.2",
+        "onnxruntime-node": "^1.21.0",
         "playwright": "^1.51.1",
         "uuid": "^11.1.0"
     },
