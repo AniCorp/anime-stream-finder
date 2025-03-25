@@ -24,10 +24,6 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    // Stop and remove any container with the name "anime-stream-finder" if it exists
-                    sh "docker stop anime-stream-finder || true"
-                    sh "docker rm anime-stream-finder || true"
-                    
                     // Optionally, ensure no container is using the specified port (e.g., 9999)
                     def runningContainer = sh(script: "docker ps -q --filter publish=${PORT}", returnStdout: true).trim()
                     if (runningContainer) {
