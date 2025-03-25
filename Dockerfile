@@ -1,5 +1,5 @@
 # Builder stage
-FROM apify/actor-node-playwright-chrome:20 AS builder
+FROM apify/actor-node-playwright-chrome:20 AS builder-stage
 WORKDIR /usr/src/app
 
 # Copy package files with proper ownership
@@ -21,21 +21,21 @@ RUN npm run build
 FROM apify/actor-node:20
 WORKDIR /usr/src/app
 
-# Install system dependency for sharp using apk (Alpine Linux)
+# Install system dependency for sharp and build dependencies (using Alpine's apk)
 USER root
 RUN apk update && apk add --no-cache vips-dev
+RUN apk add --no-cache --virtual .build-deps make gcc g++ python3
 
-# Ensure entire working directory is owned by node
+# Ensure the entire working directory is owned by node
 RUN chown -R node:node /usr/src/app
 
-# Switch to node user for the remainder of the build
+# Switch to node user for application setup
 USER node
-
-# Copy built files and package files with correct ownership
-COPY --from=builder /usr/src/app/dist ./dist
+# Copy built files and package files from the builder stage with correct ownership
+COPY --from=builder-stage /usr/src/app/dist ./dist
 COPY --chown=node:node package*.json ./
 
-# Install production dependencies (omitting dev and optional packages)
+# Install production dependencies (omitting dev and optional)
 RUN npm --quiet set progress=false \
     && npm install --omit=dev --omit=optional \
     && echo "Installed NPM packages:" \
@@ -45,7 +45,12 @@ RUN npm --quiet set progress=false \
     && echo "NPM version:" \
     && npm --version
 
-# Copy remaining source files with correct ownership
+# Switch to root to remove the build dependencies
+USER root
+RUN apk del .build-deps
+
+# Switch back to node for the remaining operations
+USER node
 COPY --chown=node:node . ./
 
 # Run the application
