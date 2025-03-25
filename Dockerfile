@@ -1,29 +1,31 @@
-# Specify the base Docker image and name the build stage as "builder"
+# Builder stage
 FROM apify/actor-node-playwright-chrome:20 AS builder
+WORKDIR /usr/src/app
 
-# Copy just package.json and package-lock.json
-# to speed up the build using Docker layer cache.
+# Copy package files
 COPY package*.json ./
 
-# Install all dependencies. Don't audit to speed up the installation.
+# (Optional) Adjust permissions if necessary
+# RUN chown -R node:node /usr/src/app
+
+# Install dependencies
 RUN npm install --include=dev --audit=false
 
-# Copy the source files using the user set in the base image.
+# Copy the rest of the source files and build the project
 COPY . ./
-
-# Build the project.
 RUN npm run build
 
-# Create final image from a different base image.
+# Final stage
 FROM apify/actor-node:20
+WORKDIR /usr/src/app
 
-# Copy only built JS files from builder image
+# Copy built files from the builder stage
 COPY --from=builder /usr/src/app/dist ./dist
 
-# Copy just package.json and package-lock.json for caching.
+# Copy package files again
 COPY package*.json ./
 
-# Install NPM packages, skipping dev and optional dependencies.
+# Install production dependencies
 RUN npm --quiet set progress=false \
     && npm install --omit=dev --omit=optional \
     && echo "Installed NPM packages:" \
@@ -33,8 +35,8 @@ RUN npm --quiet set progress=false \
     && echo "NPM version:" \
     && npm --version
 
-# Copy the remaining files and directories.
+# Copy remaining source files
 COPY . ./
 
-# Run the image.
-CMD npm run start:prod --silent
+# Run the application
+CMD ["npm", "run", "start:prod", "--silent"]
