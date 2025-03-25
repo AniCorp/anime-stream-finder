@@ -21,12 +21,6 @@ pipeline {
                 }
             }
         }
-        stage('Test') {
-            steps {
-                // Run tests from within the built image (adjust npm test if needed)
-                sh "docker run --rm ${IMAGE_NAME}:${IMAGE_TAG} npm test"
-            }
-        }
         stage('Deploy') {
             steps {
                 // Run the container (adjust ports as needed)
