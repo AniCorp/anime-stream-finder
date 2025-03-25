@@ -4,6 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = 'dawoodmasood/anime-stream-finder'
         IMAGE_TAG  = 'latest'
+        PORT = 9999
     }
 
     stages {
