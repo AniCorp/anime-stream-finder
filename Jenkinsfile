@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'anime-stream-finder'
+        IMAGE_NAME = 'dawoodmasood/anime-stream-finder'
         IMAGE_TAG  = 'latest'
     }
 
