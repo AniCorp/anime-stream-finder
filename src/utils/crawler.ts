@@ -11,13 +11,14 @@ import { v4 as uuidv4 } from 'uuid';
 
 const config = new Configuration({
   persistStorage: false,
+  logLevel: 1
 });
 
 export async function browser_crawler(
   urls: string | string[],
   cookie: string,
   customRequestHandler: (context: PlaywrightCrawlingContext) => Promise<void>,
-  maxRequestRetries: number = 3
+  maxRequestRetries: number = 5
 ): Promise<void> {
   const taskId = uuidv4();
   const requestQueue = await RequestQueue.open(taskId);

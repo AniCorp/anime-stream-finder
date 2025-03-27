@@ -29,7 +29,7 @@ app.use((err: any, req: Request, res: Response, next: Function) => {
   next();
 });
 
-app.post('/find', (req: Request, res: Response) => {
+app.post('/process', (req: Request, res: Response) => {
   const requestData: Anime = req.body;
   const taskId = uuidv4();
 
@@ -37,9 +37,9 @@ app.post('/find', (req: Request, res: Response) => {
 
   (async () => {
     try {
-      const response: ApiResponse = await findStream(requestData);
-      console.log(response)
-      tasks[taskId] = { status: 'done', result: response };
+      const streams: ApiResponse = await findStream(requestData);
+      console.log(streams)
+      tasks[taskId] = { status: 'done', result: streams };
     } catch (error) {
       console.error(error);
       tasks[taskId] = {
@@ -52,7 +52,7 @@ app.post('/find', (req: Request, res: Response) => {
   res.json({ taskId });
 });
 
-app.get('/find/:taskId', (req: Request, res: Response) => {
+app.get('/process/:taskId', (req: Request, res: Response) => {
     const { taskId } = req.params;
     const task = tasks[taskId];
   

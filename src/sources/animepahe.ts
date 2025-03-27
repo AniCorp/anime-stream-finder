@@ -303,9 +303,10 @@ export const animePahe: StreamSource = {
   name: "animepahe",
   async searchAnime(anime: Anime): Promise<StreamData[] | null> {
     const animeList = await search(anime);
-    console.log(animeList)
     const animeDetails = await fetchMatchingAnimeDetails(anime, animeList);
     if (!animeDetails.session) return null;
+
+    console.log(animeDetails)
 
     const episodeDetails = await getEpisodeSession(anime, animeDetails);
     if (!episodeDetails.session) return null;
