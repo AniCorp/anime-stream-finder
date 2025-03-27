@@ -11,6 +11,7 @@ export async function findAnime(anime: Anime): Promise<SourceStreamData[]> {
         const result = await source.searchAnime(anime);
         return { 
           name: source.name, 
+          anime: result?.anime ?? {},
           streams: result?.streams ?? [] 
         };
       } catch (error) {

@@ -10,6 +10,7 @@ export interface StreamData {
 
 export interface SourceStreamData {
   name: string;
+  anime: object,
   streams: StreamData[];
 }
 
