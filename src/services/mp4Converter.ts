@@ -40,7 +40,7 @@ export class Mp4ConverterService {
     }
 
     form.append('lang', 'en');
-    form.append('convert_to', 'mp4-wav');
+    form.append('convert_to', 'hls');
 
     const { uuid } = await this.executeConversion(form);
     return this.pollConversion(uuid, progressCallback);
