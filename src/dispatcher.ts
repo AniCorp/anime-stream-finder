@@ -8,8 +8,11 @@ export async function findAnime(anime: Anime): Promise<SourceStreamData[]> {
   const results = await Promise.all(
     sources.map(async (source) => {
       try {
-        const streams: StreamData[] | null = await source.searchAnime(anime);
-        return { name: source.name, streams: streams ?? [] };
+        const result = await source.searchAnime(anime);
+        return { 
+          name: source.name, 
+          streams: result?.streams ?? [] 
+        };
       } catch (error) {
         console.error(`Error from ${source.name}: ${error}`);
         return null;

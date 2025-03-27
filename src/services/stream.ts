@@ -1,6 +1,7 @@
 import { findAnime } from '#root/dispatcher';
 import { Anime } from '#interfaces/anime';
 import { ErrorHandler } from 'crawlee';
+import { animePahe } from '#sources/animepahe';
 
 export async function findStream(anime: Anime): Promise<any> {
     if (!anime.englishTitle && !anime.title && !anime.japaneseTitle) {
@@ -29,8 +30,13 @@ export async function findStream(anime: Anime): Promise<any> {
 
     try {
         const results = await findAnime(anime);
+        // Get full anime details directly from the source
+        const animeResult = await animePahe.searchAnime(anime);
         return {
-            data: results,
+            data: {
+                anime: animeResult?.anime || null,
+                sources: results
+            },
             status: 200, 
             headers: { 'Content-Type': 'application/json' }
         }

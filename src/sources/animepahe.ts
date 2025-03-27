@@ -1,5 +1,5 @@
 import { Anime, AnimeItem } from '#interfaces/anime';
-import { StreamSource, StreamData } from '#interfaces/stream';
+import { StreamSource, StreamData, AnimeDetails } from '#interfaces/stream';
 import { crawler, browser_crawler } from '#utils/crawler';
 import { attachSimilarityScores } from '#utils/similarity';
 import crypto from 'crypto';
@@ -301,12 +301,13 @@ export function formatStreamData(downloadLinks: DownloadLinkDetail[]): StreamDat
 
 export const animePahe: StreamSource = {
   name: "animepahe",
-  async searchAnime(anime: Anime): Promise<StreamData[] | null> {
+  async searchAnime(anime: Anime): Promise<{
+    anime: AnimeDetails;
+    streams: StreamData[];
+  } | null> {
     const animeList = await search(anime);
     const animeDetails = await fetchMatchingAnimeDetails(anime, animeList);
     if (!animeDetails.session) return null;
-
-    console.log(animeDetails)
 
     const episodeDetails = await getEpisodeSession(anime, animeDetails);
     if (!episodeDetails.session) return null;
@@ -318,8 +319,11 @@ export const animePahe: StreamSource = {
     const pahewinDetails = await resolveCountdownSkipLinks(playDetails);
     const kwikDetails = await getMp4Url(pahewinDetails);
 
-    const result = formatStreamData(kwikDetails)
+    const streams = formatStreamData(kwikDetails);
 
-    return result;
+    return {
+      anime: animeDetails,
+      streams
+    };
   },
 };
