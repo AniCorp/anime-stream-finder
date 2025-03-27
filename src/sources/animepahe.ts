@@ -1,5 +1,5 @@
 import { Anime, AnimeItem } from '#interfaces/anime';
-import { StreamSource, StreamData, AnimeDetails } from '#interfaces/stream';
+import { StreamSource, StreamData, AnimePaheDetails } from '#interfaces/stream';
 import { crawler, browser_crawler } from '#utils/crawler';
 import { attachSimilarityScores } from '#utils/similarity';
 import crypto from 'crypto';
@@ -299,10 +299,10 @@ export function formatStreamData(downloadLinks: DownloadLinkDetail[]): StreamDat
   }));
 }
 
-export const animePahe: StreamSource = {
+export const animePahe: StreamSource<AnimePaheDetails> = {
   name: "animepahe",
   async searchAnime(anime: Anime): Promise<{
-    anime: AnimeDetails;
+    anime: AnimePaheDetails;
     streams: StreamData[];
   } | null> {
     const animeList = await search(anime);
