@@ -71,4 +71,37 @@ app.get('/process/:taskId', (req: Request, res: Response) => {
 });
 
 const PORT: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 9999;
-app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
+const server = app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
+
+// Cleanup handlers for graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('SIGINT received - shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received - shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('uncaughtException', async (err) => {
+  console.error('Uncaught exception:', err);
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(1);
+  });
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('Unhandled rejection at:', promise, 'reason:', reason);
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(1);
+  });
+});

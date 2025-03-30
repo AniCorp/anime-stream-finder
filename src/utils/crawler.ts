@@ -5,7 +5,36 @@ import {
   CheerioCrawler,
   CheerioCrawlingContext,
   Configuration,
+  BrowserPool,
 } from 'crawlee';
+
+// Track active browser instances with Playwright-specific type parameters
+const activeBrowsers: Set<BrowserPool<{ 
+  browserPlugins: [import('@crawlee/browser-pool').PlaywrightPlugin]
+}>> = new Set();
+
+function cleanupBrowsers() {
+  console.log('Cleaning up browser instances...');
+  for (const browserPool of activeBrowsers) {
+    try {
+      browserPool.destroy();
+    } catch (err) {
+      console.error('Error cleaning up browser:', err);
+    }
+  }
+  activeBrowsers.clear();
+}
+
+// Register cleanup handlers
+process.on('exit', cleanupBrowsers);
+process.on('SIGINT', () => {
+  cleanupBrowsers();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  cleanupBrowsers();
+  process.exit(0);
+});
 import { BrowserName, DeviceCategory, OperatingSystemsName } from '@crawlee/browser-pool';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -55,8 +84,10 @@ export async function browser_crawler(
     },
   }, config);
 
-  await crawler.run()
-  await requestQueue.drop()
+  activeBrowsers.add(crawler.browserPool);
+  await crawler.run();
+  await requestQueue.drop();
+  activeBrowsers.delete(crawler.browserPool);
 }
 
 export async function crawler(
