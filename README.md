@@ -39,9 +39,14 @@ npm start
 ### Example Request
 ```json
 {
-  "title": "Attack on Titan",
-  "episode": 1,
-  "quality": "1080p"
+  "title": "Re:ZERO Starting Life in Another World",
+  "englishTitle": "",
+  "japaneseTitle": "",
+  "season": "",
+  "year": 2024,
+  "episodeNumber": 16,
+  "malId": 54857,
+  "anilistId": 163134
 }
 ```
 
