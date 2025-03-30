@@ -3,6 +3,7 @@ import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import { Anime } from '#interfaces/anime.js';
 import { findStream } from '#services/stream';
+import 'dotenv/config';
 
 interface ApiResponse<T = any> {
   status: number;
@@ -38,7 +39,6 @@ app.post('/process', (req: Request, res: Response) => {
   (async () => {
     try {
       const streams: ApiResponse = await findStream(requestData);
-      console.log(streams)
       tasks[taskId] = { status: 'done', result: streams };
     } catch (error) {
       console.error(error);
@@ -53,21 +53,21 @@ app.post('/process', (req: Request, res: Response) => {
 });
 
 app.get('/process/:taskId', (req: Request, res: Response) => {
-    const { taskId } = req.params;
-    const task = tasks[taskId];
-  
-    if (!task) {
-      res.status(404).json({ error: 'Task not found' });
-      return;
-    }
-  
-    if (task.status === 'pending') {
-      res.status(202).json({ status: 'pending' });
-      return;
-    }
+  const { taskId } = req.params;
+  const task = tasks[taskId];
 
-    const { result } = task;
-    res.status(result?.status || 200).json(result?.data || { error: result?.error });
+  if (!task) {
+    res.status(404).json({ error: 'Task not found' });
+    return;
+  }
+
+  if (task.status === 'pending') {
+    res.status(202).json({ status: 'pending' });
+    return;
+  }
+
+  const { result } = task;
+  res.status(result?.status || 200).json(result?.data || { error: result?.error });
 });
 
 const PORT: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 9999;
