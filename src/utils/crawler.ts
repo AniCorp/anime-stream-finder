@@ -14,7 +14,6 @@ const activeBrowsers: Set<BrowserPool<{
 }>> = new Set();
 
 function cleanupBrowsers() {
-  console.log('Cleaning up browser instances...');
   for (const browserPool of activeBrowsers) {
     try {
       browserPool.destroy();
